@@ -1,7 +1,7 @@
 -- ============================================================
 -- kpi_base_query.sql
 -- KPI Dashboard Base Data Query
--- Author: Sneha Ajmira | Eagle Analytical Services
+-- Author: Sneha Ajmira
 -- Description: Core query powering the Power BI KPI dashboard
 --              Aggregates release, quality, and lab metrics
 -- ============================================================

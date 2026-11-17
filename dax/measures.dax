@@ -1,0 +1,73 @@
+// ============================================================
+// measures.dax
+// DAX measure library for the Lab Operations KPI model
+// Fact table: KPI_Base (output of sql/kpi_base_query.sql)
+// Date table: 'Date' (marked as date table, related to KPI_Base[release_date])
+// Author: Sneha Ajmira
+// ============================================================
+
+// ---------- Volume ----------
+Releases = COUNTROWS ( KPI_Base )
+
+Releases On Time =
+CALCULATE ( [Releases], KPI_Base[release_status] = "On Time" )
+
+// ---------- Delivery ----------
+On Time Release % =
+DIVIDE ( [Releases On Time], [Releases] )
+
+Avg Cycle Time (Days) =
+AVERAGE ( KPI_Base[cycle_time_days] )
+
+Median Cycle Time (Days) =
+MEDIAN ( KPI_Base[cycle_time_days] )
+
+// ---------- Quality ----------
+Major Deviations = SUM ( KPI_Base[major_deviations] )
+
+Deviations per 100 Releases =
+DIVIDE ( SUM ( KPI_Base[minor_deviations] ) + [Major Deviations], [Releases] ) * 100
+
+Right First Time % =
+DIVIDE (
+    CALCULATE (
+        [Releases],
+        KPI_Base[minor_deviations] = 0,
+        KPI_Base[major_deviations] = 0
+    ),
+    [Releases]
+)
+
+CAPA Closure % =
+DIVIDE (
+    SUM ( KPI_Base[closed_capas] ),
+    SUM ( KPI_Base[closed_capas] ) + SUM ( KPI_Base[open_capas] )
+)
+
+// ---------- Time intelligence ----------
+On Time Release % PY =
+CALCULATE ( [On Time Release %], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
+
+On Time Release % vs PY (pts) =
+IF (
+    NOT ISBLANK ( [On Time Release % PY] ),
+    ( [On Time Release %] - [On Time Release % PY] ) * 100
+)
+
+Avg Cycle Time Rolling 3M =
+CALCULATE (
+    [Avg Cycle Time (Days)],
+    DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -3, MONTH )
+)
+
+// ---------- Status for conditional formatting ----------
+On Time Status =
+VAR Target = 0.95
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( [On Time Release %] ), BLANK (),
+        [On Time Release %] >= Target, "On target",
+        [On Time Release %] >= Target - 0.05, "Watch",
+        "Below target"
+    )
